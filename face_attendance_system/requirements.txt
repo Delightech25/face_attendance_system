@@ -1,0 +1,8 @@
+Flask
+opencv-python
+opencv-contrib-python
+numpy
+pandas
+Pillow
+pyttsx3
+openpyxl

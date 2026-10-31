@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FaceTrack — Attendance Records</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0a0d14; --surface:#111520; --surface2:#181d2b; --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.12); --accent:#4f8ef7; --accent2:#7c3aed; --green:#22c55e; --red:#ef4444; --text:#e8eaf0; --muted:#6b7280; --muted2:#9ca3af; --font-display:'Syne',sans-serif; --font-body:'DM Sans',sans-serif; --radius:14px; --radius-sm:8px; }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;min-height:100vh;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(79,142,247,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(79,142,247,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+  .sidebar{position:fixed;top:0;left:0;width:220px;height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;padding:0 0 24px;}
+  .logo{padding:28px 24px 24px;border-bottom:1px solid var(--border);margin-bottom:12px;}
+  .logo-mark{display:flex;align-items:center;gap:10px;}
+  .logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:9px;display:flex;align-items:center;justify-content:center;}
+  .logo-icon svg{width:16px;height:16px;}
+  .logo-name{font-family:var(--font-display);font-size:17px;color:#fff;}
+  .logo-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+  .nav{flex:1;padding:0 12px;}
+  .nav-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:16px 12px 8px;}
+  .nav a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);color:var(--muted2);text-decoration:none;font-size:13.5px;transition:all 0.15s;margin-bottom:2px;position:relative;}
+  .nav a svg{width:16px;height:16px;opacity:0.7;}
+  .nav a:hover{background:rgba(255,255,255,0.05);color:var(--text);}
+  .nav a.active{background:rgba(79,142,247,0.12);color:var(--accent);font-weight:500;}
+  .nav a.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--accent);border-radius:0 3px 3px 0;}
+  .main{margin-left:220px;min-height:100vh;position:relative;z-index:1;}
+  .topbar{position:sticky;top:0;z-index:50;background:rgba(10,13,20,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;}
+  .topbar h1{font-family:var(--font-display);font-size:18px;font-weight:700;color:#fff;}
+  .topbar p{font-size:12px;color:var(--muted);margin-top:1px;}
+  .content{padding:28px 32px;}
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:var(--radius-sm);font-family:var(--font-body);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all 0.15s;text-decoration:none;}
+  .btn svg{width:14px;height:14px;}
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-primary:hover{background:#3a7ef3;box-shadow:0 4px 16px rgba(79,142,247,0.3);}
+  .btn-ghost{background:rgba(255,255,255,0.06);color:var(--text);border:1px solid var(--border2);}
+  .btn-ghost:hover{background:rgba(255,255,255,0.1);}
+
+  /* FILTER BAR */
+  .filter-bar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+  .search-wrap{position:relative;flex:1;min-width:200px;}
+  .search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--muted);pointer-events:none;}
+  .search-wrap input{width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 12px 8px 34px;font-family:var(--font-body);font-size:13px;color:var(--text);outline:none;transition:border-color 0.15s;}
+  .search-wrap input:focus{border-color:var(--accent);}
+  .search-wrap input::placeholder{color:var(--muted);}
+  select{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 12px;font-family:var(--font-body);font-size:13px;color:var(--text);outline:none;cursor:pointer;}
+
+  /* TABLE */
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;animation:fadeUp 0.4s ease both;}
+  .panel-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);}
+  .panel-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:#fff;}
+  .record-count{font-size:12px;color:var(--muted);}
+  table{width:100%;border-collapse:collapse;}
+  th{padding:11px 16px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);border-bottom:1px solid var(--border);}
+  td{padding:12px 16px;font-size:13px;color:var(--text);border-bottom:1px solid rgba(255,255,255,0.04);}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:rgba(255,255,255,0.02);}
+  .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0;}
+  .name-cell{display:flex;align-items:center;gap:10px;}
+  .badge-time{background:rgba(79,142,247,0.12);color:var(--accent);font-size:11.5px;padding:3px 9px;border-radius:20px;font-family:monospace;}
+  .badge-date{background:rgba(255,255,255,0.06);color:var(--muted2);font-size:11.5px;padding:3px 9px;border-radius:20px;}
+  .badge-present{background:rgba(34,197,94,0.12);color:var(--green);font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500;}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
+  .empty-state svg{width:40px;height:40px;opacity:0.2;margin-bottom:10px;}
+  .empty-state p{font-size:13px;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="logo"><div class="logo-mark"><div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div><div class="logo-name">FaceTrack</div><div class="logo-sub">Attendance System</div></div></div></div>
+  <nav class="nav">
+    <div class="nav-label">Main</div>
+    <a href="/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a>
+    <a href="/attendance" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12l2 2 4-4"/></svg>Attendance</a>
+    <a href="/analytics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Analytics</a>
+    <div class="nav-label">People</div>
+    <a href="/students"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Students</a>
+    <a href="/register"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>Register Student</a>
+    <div class="nav-label">Data</div>
+    <a href="/export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export Excel</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div><h1>Attendance Records</h1><p>Full attendance history</p></div>
+    <a href="/export" class="btn btn-primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download Excel
+    </a>
+  </div>
+  <div class="content">
+    <div class="filter-bar">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="search" placeholder="Search by name or date…" oninput="filterTable()">
+      </div>
+      <select id="date-filter" onchange="filterTable()">
+        <option value="">All Dates</option>
+        {% set seen = [] %}
+        {% for row in records %}
+          {% if row.Date not in seen %}
+            {% set _ = seen.append(row.Date) %}
+            <option value="{{ row.Date }}">{{ row.Date }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+      <span class="btn btn-ghost" style="cursor:default" id="count-badge">{{ records|length }} records</span>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">All Records</span>
+      </div>
+      {% if records %}
+      <table id="att-table">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in records %}
+          <tr data-name="{{ row.Name|lower }}" data-date="{{ row.Date }}">
+            <td>
+              <div class="name-cell">
+                <div class="avatar">{{ row.Name[0]|upper }}</div>
+                <span>{{ row.Name.split('_')[1] if '_' in row.Name else row.Name }}</span>
+              </div>
+            </td>
+            <td><span class="badge-date">{{ row.Date }}</span></td>
+            <td><span class="badge-time">{{ row.Time }}</span></td>
+            <td><span class="badge-present">Present</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+        <p>No attendance records yet</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</main>
+
+<script>
+function filterTable() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const d = document.getElementById('date-filter').value;
+  let count = 0;
+  document.querySelectorAll('#att-table tbody tr').forEach(row => {
+    const name = row.dataset.name || '';
+    const date = row.dataset.date || '';
+    const show = (!q || name.includes(q) || date.includes(q)) && (!d || date === d);
+    row.style.display = show ? '' : 'none';
+    if (show) count++;
+  });
+  document.getElementById('count-badge').textContent = count + ' records';
+}
+</script>
+</body>
+</html>
